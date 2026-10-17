@@ -56,7 +56,8 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
         // Cookie-backed inputs can fall back to the global vault, so the form
         // never requires them even if the manifest marks them required.
         const requiresValue = input.required && !input.cookieKey;
-        this.form.addControl(input.key, new FormControl('', requiresValue ? Validators.required : []));
+        const initialValue = input.kind === 'flag' ? false : '';
+        this.form.addControl(input.key, new FormControl(initialValue, requiresValue ? Validators.required : []));
       }
     });
   }
@@ -75,9 +76,17 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
 
     this.log.set('');
     this.status.set('running');
+    const formValue = this.form.value as Record<string, unknown>;
     const inputs: Record<string, string> = {};
-    for (const [key, value] of Object.entries(this.form.value as Record<string, string>)) {
-      if (value) inputs[key] = value;
+    for (const input of manifest.inputs) {
+      const value = formValue[input.key];
+      if (input.kind === 'flag') {
+        // Always send an explicit true/false — if omitted, scripts with a cliFlag
+        // for this field fall back to an interactive stdin prompt instead of using it.
+        inputs[input.key] = value ? 'true' : 'false';
+      } else if (value) {
+        inputs[input.key] = value as string;
+      }
     }
     this.runsService.start(manifest.id, inputs).subscribe({
       next: ({ id }) => {

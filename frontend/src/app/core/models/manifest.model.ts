@@ -7,7 +7,8 @@ export interface ManifestInput {
   path?: string;
   required?: boolean;
   options?: string[];
-  flag?: string;
+  /** How this value becomes a CLI arg — see backend's manifest.types.ts for the format. */
+  cliFlag?: string;
   /** For kind=="file" cookie inputs: shared key the backend stores one global value under. */
   cookieKey?: string;
 }

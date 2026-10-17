@@ -7,7 +7,13 @@ export interface ManifestInput {
   path?: string;
   required?: boolean;
   options?: string[];
-  flag?: string;
+  /**
+   * How this value becomes a CLI arg. "select"/"text"/"date": prefix prepended directly to
+   * the value (e.g. "--engine=" + "google"). "flag": "onFlag/offFlag" pair, one of which is
+   * always passed so the script never falls back to asking interactively. Absent entirely =
+   * no CLI equivalent exists; the UI must not collect it (see manifests/SCHEMA.md).
+   */
+  cliFlag?: string;
   /** For kind=="file" cookie inputs: shared key the UI stores one global value under. */
   cookieKey?: string;
 }

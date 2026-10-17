@@ -100,10 +100,15 @@ export class RunsService {
     const extraArgs: string[] = [];
     for (const input of manifest.inputs) {
       const value = inputs[input.key];
-      if (input.kind === 'text' || input.kind === 'select' || input.kind === 'date') {
-        if (value) extraArgs.push(value);
-      } else if (input.kind === 'flag') {
-        if (value === 'true' && input.flag) extraArgs.push(input.flag);
+      if (input.kind === 'flag') {
+        // Always pass the on/off flag explicitly when set — scripts fall back to an
+        // interactive stdin prompt if neither variant is present on argv.
+        if (!input.cliFlag || value === undefined) continue;
+        const [onFlag, offFlag] = input.cliFlag.split('/');
+        extraArgs.push(value === 'true' ? onFlag : offFlag);
+      } else if (input.kind === 'text' || input.kind === 'select' || input.kind === 'date') {
+        if (!value) continue;
+        extraArgs.push(input.cliFlag ? `${input.cliFlag}${value}` : value);
       }
     }
 
