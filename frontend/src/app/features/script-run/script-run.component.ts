@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -21,6 +21,7 @@ import type { RunStatus } from '../../core/models/run.model';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    RouterLink,
     ButtonModule,
     InputTextModule,
     TextareaModule,
@@ -52,10 +53,10 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
     this.scriptsService.get(id).subscribe((manifest) => {
       this.manifest.set(manifest);
       for (const input of manifest.inputs) {
-        this.form.addControl(
-          input.key,
-          new FormControl('', input.required ? Validators.required : [])
-        );
+        // Cookie-backed inputs can fall back to the global vault, so the form
+        // never requires them even if the manifest marks them required.
+        const requiresValue = input.required && !input.cookieKey;
+        this.form.addControl(input.key, new FormControl('', requiresValue ? Validators.required : []));
       }
     });
   }
@@ -74,7 +75,11 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
 
     this.log.set('');
     this.status.set('running');
-    this.runsService.start(manifest.id, this.form.value as Record<string, string>).subscribe({
+    const inputs: Record<string, string> = {};
+    for (const [key, value] of Object.entries(this.form.value as Record<string, string>)) {
+      if (value) inputs[key] = value;
+    }
+    this.runsService.start(manifest.id, inputs).subscribe({
       next: ({ id }) => {
         this.runId.set(id);
         this.logSub = this.runsService.watchLogs(id).subscribe((event) => {

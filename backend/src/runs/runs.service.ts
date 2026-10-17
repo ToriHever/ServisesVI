@@ -9,6 +9,7 @@ import { Subject } from 'rxjs';
 import type { Readable, Writable } from 'node:stream';
 import { ManifestsService } from '../manifests/manifests.service.js';
 import { HistoryService } from '../history/history.service.js';
+import { CookiesService } from '../cookies/cookies.service.js';
 import type { ScriptManifest } from '../manifests/manifest.types.js';
 import type { RunLogEvent, RunStatus, StartRunDto } from './run.types.js';
 
@@ -29,7 +30,8 @@ export class RunsService {
 
   constructor(
     private readonly manifests: ManifestsService,
-    private readonly history: HistoryService
+    private readonly history: HistoryService,
+    private readonly cookies: CookiesService
   ) {}
 
   list() {
@@ -53,6 +55,8 @@ export class RunsService {
     const inputs = dto.inputs ?? {};
 
     for (const input of manifest.inputs) {
+      // Cookie-backed inputs may be satisfied from the global vault instead of this run's form.
+      if (input.cookieKey) continue;
       if (input.required && !(input.key in inputs) && input.kind !== 'flag') {
         throw new BadRequestException(`Отсутствует обязательный параметр "${input.key}"`);
       }
@@ -60,16 +64,35 @@ export class RunsService {
 
     // "file" inputs are written to their declared path inside the script's cwd.
     for (const input of manifest.inputs) {
-      if (input.kind === 'file' && input.path && inputs[input.key] !== undefined) {
-        if (input.path.includes('<')) {
-          throw new BadRequestException(
-            `Параметр "${input.key}" требует загрузки нескольких файлов в папку (путь из манифеста: "${input.path}") — такой ввод пока не поддержан в UI`
-          );
+      if (input.kind !== 'file' || !input.path) continue;
+
+      if (input.cookieKey) {
+        const inlineValue = inputs[input.key];
+        const content = inlineValue || (await this.cookies.get(input.cookieKey));
+        if (content === null || content === undefined) {
+          if (input.required) {
+            throw new BadRequestException(
+              `Нет сохранённых cookies "${input.cookieKey}" для параметра "${input.key}" — заполните их на странице "Cookies" или в этой форме`
+            );
+          }
+          continue;
         }
+        if (inlineValue) await this.cookies.set(input.cookieKey, inlineValue);
         const targetPath = join(scriptCwd, input.path);
         await mkdir(dirname(targetPath), { recursive: true });
-        await writeFile(targetPath, inputs[input.key], 'utf-8');
+        await writeFile(targetPath, content, 'utf-8');
+        continue;
       }
+
+      if (inputs[input.key] === undefined) continue;
+      if (input.path.includes('<')) {
+        throw new BadRequestException(
+          `Параметр "${input.key}" требует загрузки нескольких файлов в папку (путь из манифеста: "${input.path}") — такой ввод пока не поддержан в UI`
+        );
+      }
+      const targetPath = join(scriptCwd, input.path);
+      await mkdir(dirname(targetPath), { recursive: true });
+      await writeFile(targetPath, inputs[input.key], 'utf-8');
     }
 
     const extraArgs: string[] = [];

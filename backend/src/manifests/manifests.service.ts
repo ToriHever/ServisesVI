@@ -50,4 +50,21 @@ export class ManifestsService implements OnModuleInit {
   resolveScriptCwd(manifest: ScriptManifest): string {
     return join(this.getScriptsDir(), manifest.cwd);
   }
+
+  listCookieKeys(): { key: string; label: string; scripts: string[] }[] {
+    const byKey = new Map<string, { key: string; label: string; scripts: string[] }>();
+    for (const manifest of this.cache.values()) {
+      for (const input of manifest.inputs) {
+        if (input.kind !== 'file' || !input.cookieKey) continue;
+        const entry = byKey.get(input.cookieKey) ?? {
+          key: input.cookieKey,
+          label: input.cookieKey,
+          scripts: []
+        };
+        entry.scripts.push(manifest.id);
+        byKey.set(input.cookieKey, entry);
+      }
+    }
+    return [...byKey.values()];
+  }
 }

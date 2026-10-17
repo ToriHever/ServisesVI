@@ -8,6 +8,8 @@ export interface ManifestInput {
   required?: boolean;
   options?: string[];
   flag?: string;
+  /** For kind=="file" cookie inputs: shared key the backend stores one global value under. */
+  cookieKey?: string;
 }
 
 export type BlockingKind = 'manual-captcha' | 'manual-login' | 'notepad-edit' | 'interactive-menu';

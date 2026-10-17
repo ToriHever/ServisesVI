@@ -5,9 +5,16 @@ import { AppService } from './app.service.js';
 import { ManifestsModule } from './manifests/manifests.module.js';
 import { RunsModule } from './runs/runs.module.js';
 import { HistoryModule } from './history/history.module.js';
+import { CookiesModule } from './cookies/cookies.module.js';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), ManifestsModule, HistoryModule, RunsModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    ManifestsModule,
+    HistoryModule,
+    CookiesModule,
+    RunsModule
+  ],
   controllers: [AppController],
   providers: [AppService]
 })

@@ -1,0 +1,51 @@
+<div class="page">
+  <h1>Cookies</h1>
+  <p>Общие cookies для скриптов, которые логинятся в один и тот же сайт — сохраняются один раз и переиспользуются всеми скриптами ниже.</p>
+
+  <p-table [value]="keys()" [loading]="loading()" dataKey="key">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Сайт</th>
+        <th>Используется в скриптах</th>
+        <th>Статус</th>
+        <th>Обновлено</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-info>
+      <tr>
+        <td>{{ info.key }}</td>
+        <td>{{ info.scripts.join(', ') }}</td>
+        <td>
+          <p-tag *ngIf="info.hasValue" value="сохранено" severity="success"></p-tag>
+          <p-tag *ngIf="!info.hasValue" value="пусто" severity="warn"></p-tag>
+        </td>
+        <td>{{ info.updatedAt ? (info.updatedAt | date: 'short') : '—' }}</td>
+        <td>
+          <button pButton type="button" icon="pi pi-pencil" label="Изменить" (click)="edit(info)"></button>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <p-dialog
+    header="Cookies: {{ editingKey() }}"
+    [visible]="editingKey() !== null"
+    (visibleChange)="cancel()"
+    [modal]="true"
+    [style]="{ width: '640px' }"
+  >
+    <textarea
+      pTextarea
+      rows="14"
+      style="width: 100%"
+      [(ngModel)]="editingContent"
+      placeholder="Вставьте JSON cookies (экспорт из Puppeteer/расширения браузера)"
+    ></textarea>
+
+    <div class="dialog-actions">
+      <button pButton type="button" label="Сохранить" icon="pi pi-check" [loading]="saving()" (click)="save()"></button>
+      <button pButton type="button" label="Отмена" severity="secondary" (click)="cancel()"></button>
+    </div>
+  </p-dialog>
+</div>

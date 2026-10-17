@@ -15,5 +15,10 @@ export const routes: Routes = [
     path: 'history',
     loadComponent: () =>
       import('./features/history/history.component').then((m) => m.HistoryComponent)
+  },
+  {
+    path: 'cookies',
+    loadComponent: () =>
+      import('./features/cookies/cookies.component').then((m) => m.CookiesComponent)
   }
 ];

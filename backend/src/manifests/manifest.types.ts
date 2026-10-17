@@ -8,6 +8,8 @@ export interface ManifestInput {
   required?: boolean;
   options?: string[];
   flag?: string;
+  /** For kind=="file" cookie inputs: shared key the UI stores one global value under. */
+  cookieKey?: string;
 }
 
 export interface ManifestEnvVar {

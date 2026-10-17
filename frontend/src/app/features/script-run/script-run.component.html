@@ -15,8 +15,16 @@
         rows="6"
         [id]="input.key"
         [formControlName]="input.key"
-        [placeholder]="'Содержимое файла ' + (input.path ?? '')"
+        [placeholder]="
+          input.cookieKey
+            ? 'Оставьте пустым, чтобы использовать сохранённые cookies \'' + input.cookieKey + '\''
+            : 'Содержимое файла ' + (input.path ?? '')
+        "
       ></textarea>
+      <small *ngIf="input.kind === 'file' && input.cookieKey">
+        Общие cookies сайта «{{ input.cookieKey }}» — можно управлять на странице
+        <a routerLink="/cookies">Cookies</a>. Если вставить значение здесь, оно обновит общий набор.
+      </small>
 
       <input
         *ngIf="input.kind === 'text'"
