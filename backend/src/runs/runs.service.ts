@@ -1,13 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import spawn from 'cross-spawn';
-import type { ChildProcessByStdio } from 'node:child_process';
+import crossSpawn from 'cross-spawn';
+import * as pty from 'node-pty';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { parse as parseDotenv } from 'dotenv';
 import { Subject } from 'rxjs';
-import type { Readable, Writable } from 'node:stream';
+import stripAnsi from 'strip-ansi';
 import { ManifestsService } from '../manifests/manifests.service.js';
 import { HistoryService } from '../history/history.service.js';
 import { CookiesService } from '../cookies/cookies.service.js';
@@ -19,7 +19,7 @@ interface RunState {
   scriptId: string;
   manifest: ScriptManifest;
   /** Undefined while installing dependencies, before the actual script process starts. */
-  child?: ChildProcessByStdio<Writable, Readable, Readable>;
+  child?: pty.IPty;
   status: RunStatus;
   logs: string[];
   startedAt: string;
@@ -158,23 +158,39 @@ export class RunsService {
     }
     if (run.status === 'stopped') return;
 
-    const child = spawn(manifest.command, [...manifest.args, ...extraArgs], {
-      cwd: scriptCwd,
-      env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: false
-    }) as ChildProcessByStdio<Writable, Readable, Readable>;
+    // Spawned inside a pseudo-terminal rather than plain pipes: several scripts in this
+    // repo only wire up keyboard shortcuts / menu prompts when process.stdin.isTTY is true
+    // (readline.emitKeypressEvents is gated behind that check) — over a plain pipe those
+    // prompts print but can never receive an answer and the process exits almost
+    // immediately, silently skipping the rest of the run.
+    let child: pty.IPty;
+    try {
+      child = pty.spawn(this.resolvePtyCommand(manifest.command), [...manifest.args, ...extraArgs], {
+        cwd: scriptCwd,
+        env,
+        cols: 120,
+        rows: 30
+      });
+    } catch (err) {
+      this.appendLog(run, 'stderr', `[не удалось запустить процесс] ${(err as Error).message}\n`);
+      this.finish(run, 'failed', null);
+      return;
+    }
     run.child = child;
 
-    child.stdout.on('data', (chunk: Buffer) => this.appendLog(run, 'stdout', chunk.toString('utf-8')));
-    child.stderr.on('data', (chunk: Buffer) => this.appendLog(run, 'stderr', chunk.toString('utf-8')));
-    child.on('error', (err) => {
-      this.appendLog(run, 'stderr', `[не удалось запустить процесс] ${err.message}\n`);
-      this.finish(run, 'failed', null);
-    });
-    child.on('close', (exitCode) => {
+    child.onData((data) => this.appendLog(run, 'stdout', this.cleanTerminalOutput(data)));
+    child.onExit(({ exitCode }) => {
       this.finish(run, exitCode === 0 ? 'finished' : 'failed', exitCode);
     });
+  }
+
+  /** node-pty resolves the executable itself and needs the real Windows extension. */
+  private resolvePtyCommand(command: string): string {
+    if (process.platform !== 'win32') return command;
+    if (command === 'node') return 'node.exe';
+    if (command === 'npm') return 'npm.cmd';
+    if (command === 'npx') return 'npx.cmd';
+    return command;
   }
 
   /** Runs the manifest's install command once, if node_modules is missing. */
@@ -187,7 +203,7 @@ export class RunsService {
     const [cmd, ...args] = command.split(' ');
     this.appendLog(run, 'stdout', `[установка зависимостей] ${command}\n`);
 
-    const installChild = spawn(cmd, args, {
+    const installChild = crossSpawn(cmd, args, {
       cwd: scriptCwd,
       shell: false,
       stdio: ['ignore', 'pipe', 'pipe']
@@ -216,6 +232,15 @@ export class RunsService {
     return true;
   }
 
+  /**
+   * strip-ansi only removes CSI escapes (cursor movement, colors); OSC sequences like the
+   * terminal-title-set the console title sequence (`ESC ] 0 ; <title> BEL`) node emits at
+   * startup slip through and corrupt the log, so strip those too.
+   */
+  private cleanTerminalOutput(text: string): string {
+    return stripAnsi(text.replace(/\x1b\][^\x07\x1b]*(\x07|\x1b\\)/g, ''));
+  }
+
   private appendLog(run: RunState, stream: 'stdout' | 'stderr', text: string): void {
     run.logs.push(text);
     run.events.next({ type: 'log', stream, text, at: new Date().toISOString() });
@@ -234,7 +259,9 @@ export class RunsService {
     if (run.status !== 'running' || !run.child) {
       throw new BadRequestException('Процесс ещё не готов принимать ввод или уже завершён');
     }
-    run.child.stdin.write(text.endsWith('\n') ? text : `${text}\n`);
+    // '\r' is what a pty delivers for the Enter key — scripts reading raw keypresses
+    // (not readline's line-buffered input) only recognize that, not '\n'.
+    run.child.write(text.endsWith('\r') ? text : `${text}\r`);
   }
 
   stop(id: string): void {
