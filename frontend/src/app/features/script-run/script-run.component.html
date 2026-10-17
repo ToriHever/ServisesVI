@@ -65,7 +65,7 @@
     ></button>
   </form>
 
-  <div class="log-panel" *ngIf="runId()">
+  <div class="log-panel" *ngIf="status()">
     <h3>Лог запуска <small>{{ status() }}</small></h3>
     <pre class="log-output">{{ log() }}</pre>
 

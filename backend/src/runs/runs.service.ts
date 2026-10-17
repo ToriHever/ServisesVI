@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { spawn, type ChildProcessByStdio } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { parse as parseDotenv } from 'dotenv';
 import { Subject } from 'rxjs';
@@ -61,7 +61,14 @@ export class RunsService {
     // "file" inputs are written to their declared path inside the script's cwd.
     for (const input of manifest.inputs) {
       if (input.kind === 'file' && input.path && inputs[input.key] !== undefined) {
-        await writeFile(join(scriptCwd, input.path), inputs[input.key], 'utf-8');
+        if (input.path.includes('<')) {
+          throw new BadRequestException(
+            `Параметр "${input.key}" требует загрузки нескольких файлов в папку (путь из манифеста: "${input.path}") — такой ввод пока не поддержан в UI`
+          );
+        }
+        const targetPath = join(scriptCwd, input.path);
+        await mkdir(dirname(targetPath), { recursive: true });
+        await writeFile(targetPath, inputs[input.key], 'utf-8');
       }
     }
 

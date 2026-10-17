@@ -87,7 +87,8 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.status.set('failed');
-        this.log.update((current) => current + `\n[Ошибка запуска] ${err.message}\n`);
+        const message = err?.error?.message ?? err?.message ?? 'неизвестная ошибка';
+        this.log.update((current) => current + `[Ошибка запуска] ${message}\n`);
       }
     });
   }
