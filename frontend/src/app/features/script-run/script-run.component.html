@@ -1,0 +1,77 @@
+<div class="page" *ngIf="manifest() as m">
+  <h1>{{ m.name }}</h1>
+  <p>{{ m.description }}</p>
+
+  <p-tag *ngIf="isBlocking" severity="danger" value="Требует ручного участия"></p-tag>
+  <p-tag *ngIf="!m.execution.headless" severity="warn" value="Открывает видимый браузер"></p-tag>
+
+  <form [formGroup]="form" class="run-form">
+    <div class="field" *ngFor="let input of m.inputs">
+      <label [for]="input.key">{{ input.label }}<span *ngIf="input.required"> *</span></label>
+
+      <textarea
+        *ngIf="input.kind === 'file'"
+        pTextarea
+        rows="6"
+        [id]="input.key"
+        [formControlName]="input.key"
+        [placeholder]="'Содержимое файла ' + (input.path ?? '')"
+      ></textarea>
+
+      <input
+        *ngIf="input.kind === 'text'"
+        pInputText
+        [id]="input.key"
+        [formControlName]="input.key"
+      />
+
+      <p-select
+        *ngIf="input.kind === 'select'"
+        [id]="input.key"
+        [options]="input.options ?? []"
+        [formControlName]="input.key"
+      ></p-select>
+
+      <p-checkbox
+        *ngIf="input.kind === 'flag'"
+        [id]="input.key"
+        [formControlName]="input.key"
+        [binary]="true"
+      ></p-checkbox>
+
+      <p-datepicker
+        *ngIf="input.kind === 'date'"
+        [id]="input.key"
+        [formControlName]="input.key"
+      ></p-datepicker>
+    </div>
+
+    <button
+      pButton
+      type="button"
+      label="Запустить"
+      icon="pi pi-play"
+      [disabled]="form.invalid || status() === 'running'"
+      (click)="start()"
+    ></button>
+    <button
+      pButton
+      type="button"
+      label="Остановить"
+      icon="pi pi-stop"
+      severity="danger"
+      [disabled]="status() !== 'running'"
+      (click)="stop()"
+    ></button>
+  </form>
+
+  <div class="log-panel" *ngIf="runId()">
+    <h3>Лог запуска <small>{{ status() }}</small></h3>
+    <pre class="log-output">{{ log() }}</pre>
+
+    <div class="continuation" *ngIf="isBlocking && status() === 'running'">
+      <input pInputText [formControl]="continuation" placeholder="Нажмите Enter / введите ответ скрипту" (keyup.enter)="sendContinuation()" />
+      <button pButton type="button" label="Отправить" icon="pi pi-send" (click)="sendContinuation()"></button>
+    </div>
+  </div>
+</div>

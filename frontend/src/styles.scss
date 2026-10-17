@@ -1,0 +1,57 @@
+/* You can add global styles to this file, and also import other style files */
+@import "primeicons/primeicons.css";
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.run-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+
+    textarea,
+    input {
+      width: 100%;
+    }
+  }
+}
+
+.log-panel {
+  margin-top: 1.5rem;
+}
+
+.log-output {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1rem;
+  border-radius: 6px;
+  max-height: 420px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.continuation {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.mr-1 {
+  margin-right: 0.25rem;
+}

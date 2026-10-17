@@ -1,0 +1,38 @@
+<div class="page">
+  <h1>История запусков</h1>
+
+  <p-table [value]="runs()" [loading]="loading()" dataKey="id">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Скрипт</th>
+        <th>Статус</th>
+        <th>Начало</th>
+        <th>Окончание</th>
+        <th>Код выхода</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-run>
+      <tr>
+        <td>{{ run.scriptId }}</td>
+        <td><p-tag [value]="run.status" [severity]="severityFor(run.status)"></p-tag></td>
+        <td>{{ run.startedAt | date: 'short' }}</td>
+        <td>{{ run.finishedAt ? (run.finishedAt | date: 'short') : '—' }}</td>
+        <td>{{ run.exitCode ?? '—' }}</td>
+        <td>
+          <button pButton type="button" icon="pi pi-file" label="Лог" (click)="showLog(run)"></button>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <p-dialog
+    header="Лог запуска"
+    [visible]="selectedLog() !== null"
+    (visibleChange)="selectedLog.set(null)"
+    [modal]="true"
+    styleClass="log-dialog"
+  >
+    <pre class="log-output">{{ selectedLog() }}</pre>
+  </p-dialog>
+</div>

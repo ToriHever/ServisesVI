@@ -1,0 +1,9 @@
+<nav class="top-nav">
+  <span class="brand">{{ title }}</span>
+  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Скрипты</a>
+  <a routerLink="/history" routerLinkActive="active">История</a>
+</nav>
+
+<main>
+  <router-outlet></router-outlet>
+</main>
