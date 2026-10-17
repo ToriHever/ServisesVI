@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { spawn, type ChildProcessByStdio } from 'node:child_process';
+import spawn from 'cross-spawn';
+import type { ChildProcessByStdio } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -17,7 +18,8 @@ interface RunState {
   id: string;
   scriptId: string;
   manifest: ScriptManifest;
-  child: ChildProcessByStdio<Writable, Readable, Readable>;
+  /** Undefined while installing dependencies, before the actual script process starts. */
+  child?: ChildProcessByStdio<Writable, Readable, Readable>;
   status: RunStatus;
   logs: string[];
   startedAt: string;
@@ -108,20 +110,12 @@ export class RunsService {
     const env = this.loadEnv(manifest);
     const id = randomUUID();
     const events = new Subject<RunLogEvent>();
-
-    const child = spawn(manifest.command, [...manifest.args, ...extraArgs], {
-      cwd: scriptCwd,
-      env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: false
-    }) as ChildProcessByStdio<Writable, Readable, Readable>;
-
     const startedAt = new Date().toISOString();
+
     const run: RunState = {
       id,
       scriptId: dto.scriptId,
       manifest,
-      child,
       status: 'running',
       logs: [],
       startedAt,
@@ -136,29 +130,104 @@ export class RunsService {
       paramsJson: JSON.stringify(inputs)
     });
 
-    const onChunk = (stream: 'stdout' | 'stderr') => (chunk: Buffer) => {
-      const text = chunk.toString('utf-8');
-      run.logs.push(text);
-      events.next({ type: 'log', stream, text, at: new Date().toISOString() });
-    };
-    child.stdout.on('data', onChunk('stdout'));
-    child.stderr.on('data', onChunk('stderr'));
-
-    child.on('close', (exitCode) => {
-      const status: RunStatus = exitCode === 0 ? 'finished' : 'failed';
-      run.status = status;
-      this.history.finish(id, status, exitCode, run.logs.join(''));
-      events.next({ type: 'exit', status, exitCode, at: new Date().toISOString() });
-      events.complete();
+    this.launch(run, scriptCwd, extraArgs, env).catch((err: Error) => {
+      this.appendLog(run, 'stderr', `[внутренняя ошибка] ${err.message}\n`);
+      this.finish(run, 'failed', null);
     });
 
     return { id };
   }
 
+  private async launch(
+    run: RunState,
+    scriptCwd: string,
+    extraArgs: string[],
+    env: NodeJS.ProcessEnv
+  ): Promise<void> {
+    const { manifest } = run;
+
+    const installed = await this.ensureInstalled(run, scriptCwd);
+    if (!installed) {
+      this.finish(run, 'failed', null);
+      return;
+    }
+    if (run.status === 'stopped') return;
+
+    const child = spawn(manifest.command, [...manifest.args, ...extraArgs], {
+      cwd: scriptCwd,
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: false
+    }) as ChildProcessByStdio<Writable, Readable, Readable>;
+    run.child = child;
+
+    child.stdout.on('data', (chunk: Buffer) => this.appendLog(run, 'stdout', chunk.toString('utf-8')));
+    child.stderr.on('data', (chunk: Buffer) => this.appendLog(run, 'stderr', chunk.toString('utf-8')));
+    child.on('error', (err) => {
+      this.appendLog(run, 'stderr', `[не удалось запустить процесс] ${err.message}\n`);
+      this.finish(run, 'failed', null);
+    });
+    child.on('close', (exitCode) => {
+      this.finish(run, exitCode === 0 ? 'finished' : 'failed', exitCode);
+    });
+  }
+
+  /** Runs the manifest's install command once, if node_modules is missing. */
+  private async ensureInstalled(run: RunState, scriptCwd: string): Promise<boolean> {
+    const { install } = run.manifest;
+    if (!install.needed) return true;
+    if (existsSync(join(scriptCwd, 'node_modules'))) return true;
+
+    const command = install.command ?? 'npm install';
+    const [cmd, ...args] = command.split(' ');
+    this.appendLog(run, 'stdout', `[установка зависимостей] ${command}\n`);
+
+    const installChild = spawn(cmd, args, {
+      cwd: scriptCwd,
+      shell: false,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    installChild.stdout?.on('data', (chunk: Buffer) => this.appendLog(run, 'stdout', chunk.toString('utf-8')));
+    installChild.stderr?.on('data', (chunk: Buffer) => this.appendLog(run, 'stderr', chunk.toString('utf-8')));
+
+    const exitCode: number | null = await new Promise((resolve) => {
+      let settled = false;
+      const settle = (code: number | null) => {
+        if (settled) return;
+        settled = true;
+        resolve(code);
+      };
+      installChild.on('error', (err) => {
+        this.appendLog(run, 'stderr', `[установка зависимостей] не удалось запустить: ${err.message}\n`);
+        settle(null);
+      });
+      installChild.on('close', settle);
+    });
+    if (exitCode !== 0) {
+      this.appendLog(run, 'stderr', `[установка зависимостей] завершилась с кодом ${exitCode}\n`);
+      return false;
+    }
+    this.appendLog(run, 'stdout', `[установка зависимостей] готово\n`);
+    return true;
+  }
+
+  private appendLog(run: RunState, stream: 'stdout' | 'stderr', text: string): void {
+    run.logs.push(text);
+    run.events.next({ type: 'log', stream, text, at: new Date().toISOString() });
+  }
+
+  private finish(run: RunState, status: RunStatus, exitCode: number | null): void {
+    if (run.status !== 'running') return;
+    run.status = status;
+    this.history.finish(run.id, status, exitCode, run.logs.join(''));
+    run.events.next({ type: 'exit', status, exitCode, at: new Date().toISOString() });
+    run.events.complete();
+  }
+
   sendInput(id: string, text: string): void {
     const run = this.getState(id);
-    if (run.status !== 'running') {
-      throw new BadRequestException('Процесс уже завершён');
+    if (run.status !== 'running' || !run.child) {
+      throw new BadRequestException('Процесс ещё не готов принимать ввод или уже завершён');
     }
     run.child.stdin.write(text.endsWith('\n') ? text : `${text}\n`);
   }
@@ -166,7 +235,7 @@ export class RunsService {
   stop(id: string): void {
     const run = this.getState(id);
     if (run.status === 'running') {
-      run.child.kill();
+      run.child?.kill();
       run.status = 'stopped';
       this.history.finish(id, 'stopped', null, run.logs.join(''));
     }
