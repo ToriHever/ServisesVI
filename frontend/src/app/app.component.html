@@ -1,10 +1,35 @@
-<nav class="top-nav">
-  <span class="brand">{{ title }}</span>
-  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Скрипты</a>
-  <a routerLink="/history" routerLinkActive="active">История</a>
-  <a routerLink="/cookies" routerLinkActive="active">Cookies</a>
-</nav>
+<div class="shell" [class.collapsed]="collapsed()">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="brand" *ngIf="!collapsed()">{{ title }}</span>
+      <button
+        pButton
+        type="button"
+        class="toggle-btn"
+        [icon]="collapsed() ? 'pi pi-angle-right' : 'pi pi-angle-left'"
+        severity="secondary"
+        [text]="true"
+        (click)="toggle()"
+      ></button>
+    </div>
 
-<main>
-  <router-outlet></router-outlet>
-</main>
+    <nav class="sidebar-nav">
+      <a
+        *ngFor="let item of navItems"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: !!item.exact }"
+        pTooltip="{{ item.label }}"
+        tooltipPosition="right"
+        [tooltipDisabled]="!collapsed()"
+      >
+        <i [class]="item.icon"></i>
+        <span *ngIf="!collapsed()">{{ item.label }}</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="content-area">
+    <router-outlet></router-outlet>
+  </div>
+</div>
