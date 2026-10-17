@@ -9,6 +9,8 @@ export interface ManifestInput {
   options?: string[];
   /** How this value becomes a CLI arg — see backend's manifest.types.ts for the format. */
   cliFlag?: string;
+  /** Answered automatically in stdin after launch instead of a CLI arg — same format as cliFlag. */
+  stdinAnswer?: string;
   /** For kind=="file" cookie inputs: shared key the backend stores one global value under. */
   cookieKey?: string;
 }

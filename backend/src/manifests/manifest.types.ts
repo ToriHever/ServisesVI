@@ -14,6 +14,12 @@ export interface ManifestInput {
    * no CLI equivalent exists; the UI must not collect it (see manifests/SCHEMA.md).
    */
   cliFlag?: string;
+  /**
+   * For a value the script only reads from an interactive stdin prompt (no CLI flag exists).
+   * "flag": "whenTrue/whenFalse" pair of literal keystrokes. "select": the value itself is the
+   * keystroke. The backend types the answer into the process right after spawn, automatically.
+   */
+  stdinAnswer?: string;
   /** For kind=="file" cookie inputs: shared key the UI stores one global value under. */
   cookieKey?: string;
 }

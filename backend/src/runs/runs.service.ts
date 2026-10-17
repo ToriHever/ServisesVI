@@ -98,9 +98,15 @@ export class RunsService {
     }
 
     const extraArgs: string[] = [];
+    const stdinAnswers: string[] = [];
     for (const input of manifest.inputs) {
       const value = inputs[input.key];
       if (input.kind === 'flag') {
+        if (input.stdinAnswer && value !== undefined) {
+          const [onAnswer, offAnswer] = input.stdinAnswer.split('/');
+          stdinAnswers.push(value === 'true' ? onAnswer : offAnswer);
+          continue;
+        }
         // Always pass the on/off flag explicitly when set — scripts fall back to an
         // interactive stdin prompt if neither variant is present on argv.
         if (!input.cliFlag || value === undefined) continue;
@@ -108,6 +114,10 @@ export class RunsService {
         extraArgs.push(value === 'true' ? onFlag : offFlag);
       } else if (input.kind === 'text' || input.kind === 'select' || input.kind === 'date') {
         if (!value) continue;
+        if (input.stdinAnswer) {
+          stdinAnswers.push(value);
+          continue;
+        }
         extraArgs.push(input.cliFlag ? `${input.cliFlag}${value}` : value);
       }
     }
@@ -135,7 +145,7 @@ export class RunsService {
       paramsJson: JSON.stringify(inputs)
     });
 
-    this.launch(run, scriptCwd, extraArgs, env).catch((err: Error) => {
+    this.launch(run, scriptCwd, extraArgs, env, stdinAnswers).catch((err: Error) => {
       this.appendLog(run, 'stderr', `[внутренняя ошибка] ${err.message}\n`);
       this.finish(run, 'failed', null);
     });
@@ -147,7 +157,8 @@ export class RunsService {
     run: RunState,
     scriptCwd: string,
     extraArgs: string[],
-    env: NodeJS.ProcessEnv
+    env: NodeJS.ProcessEnv,
+    stdinAnswers: string[]
   ): Promise<void> {
     const { manifest } = run;
 
@@ -182,6 +193,23 @@ export class RunsService {
     child.onExit(({ exitCode }) => {
       this.finish(run, exitCode === 0 ? 'finished' : 'failed', exitCode);
     });
+
+    await this.sendStdinAnswers(run, stdinAnswers);
+  }
+
+  /**
+   * Types pre-collected form answers into the pty right after spawn, for prompts that have
+   * no CLI equivalent — the user picked the answer in the launch form instead of the
+   * "continue" box. Answers are sent in manifest.inputs order with a short delay between
+   * each, mirroring how fast a human could react; only safe for the first prompt(s) a script
+   * shows unconditionally, never for a submenu that depends on an earlier choice.
+   */
+  private async sendStdinAnswers(run: RunState, answers: string[]): Promise<void> {
+    for (const answer of answers) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      if (run.status !== 'running' || !run.child) return;
+      run.child.write(`${answer}\r`);
+    }
   }
 
   /** node-pty resolves the executable itself and needs the real Windows extension. */

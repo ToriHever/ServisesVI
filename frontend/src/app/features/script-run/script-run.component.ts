@@ -10,10 +10,13 @@ import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TagModule } from 'primeng/tag';
+import { DialogModule } from 'primeng/dialog';
 import { ScriptsService } from '../../core/services/scripts.service';
 import { RunsService } from '../../core/services/runs.service';
+import { OutputsService } from '../../core/services/outputs.service';
 import type { ScriptManifest } from '../../core/models/manifest.model';
 import type { RunStatus } from '../../core/models/run.model';
+import type { OutputFile } from '../../core/models/output-file.model';
 
 @Component({
   selector: 'app-script-run',
@@ -28,7 +31,8 @@ import type { RunStatus } from '../../core/models/run.model';
     SelectModule,
     CheckboxModule,
     DatePickerModule,
-    TagModule
+    TagModule,
+    DialogModule
   ],
   templateUrl: './script-run.component.html'
 })
@@ -39,13 +43,17 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
   readonly status = signal<RunStatus | null>(null);
   readonly log = signal('');
   readonly continuation = new FormControl('');
+  readonly outputsVisible = signal(false);
+  readonly outputs = signal<OutputFile[]>([]);
+  readonly outputsLoading = signal(false);
 
   private logSub?: Subscription;
 
   constructor(
     private readonly route: ActivatedRoute,
     private readonly scriptsService: ScriptsService,
-    private readonly runsService: RunsService
+    private readonly runsService: RunsService,
+    private readonly outputsService: OutputsService
   ) {}
 
   ngOnInit(): void {
@@ -118,5 +126,33 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
     const id = this.runId();
     if (!id) return;
     this.runsService.stop(id).subscribe(() => this.status.set('stopped'));
+  }
+
+  openOutputs(): void {
+    const manifest = this.manifest();
+    if (!manifest) return;
+    this.outputsVisible.set(true);
+    this.loadOutputs(manifest.id);
+  }
+
+  private loadOutputs(scriptId: string): void {
+    this.outputsLoading.set(true);
+    this.outputsService.list(scriptId).subscribe({
+      next: (files) => {
+        this.outputs.set(files);
+        this.outputsLoading.set(false);
+      },
+      error: () => this.outputsLoading.set(false)
+    });
+  }
+
+  refreshOutputs(): void {
+    const manifest = this.manifest();
+    if (manifest) this.loadOutputs(manifest.id);
+  }
+
+  downloadUrl(path: string): string {
+    const manifest = this.manifest();
+    return manifest ? this.outputsService.downloadUrl(manifest.id, path) : '';
   }
 }

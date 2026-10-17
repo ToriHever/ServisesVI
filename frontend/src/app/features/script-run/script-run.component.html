@@ -71,6 +71,14 @@
       [disabled]="status() !== 'running'"
       (click)="stop()"
     ></button>
+    <button
+      pButton
+      type="button"
+      label="Результаты"
+      icon="pi pi-folder-open"
+      severity="secondary"
+      (click)="openOutputs()"
+    ></button>
   </form>
 
   <div class="log-panel" *ngIf="status()">
@@ -82,4 +90,23 @@
       <button pButton type="button" label="Отправить" icon="pi pi-send" (click)="sendContinuation()"></button>
     </div>
   </div>
+
+  <p-dialog
+    header="Файлы результатов"
+    [visible]="outputsVisible()"
+    (visibleChange)="outputsVisible.set($event)"
+    [modal]="true"
+    [style]="{ width: '640px' }"
+  >
+    <button pButton type="button" label="Обновить" icon="pi pi-refresh" [loading]="outputsLoading()" (click)="refreshOutputs()" class="mb-2"></button>
+
+    <p *ngIf="!outputsLoading() && outputs().length === 0">Файлов пока нет — запустите скрипт, чтобы они появились здесь.</p>
+
+    <ul class="outputs-list" *ngIf="outputs().length > 0">
+      <li *ngFor="let file of outputs()">
+        <a [href]="downloadUrl(file.path)" target="_blank">{{ file.path }}</a>
+        <span class="outputs-meta">{{ file.modifiedAt | date: 'short' }}</span>
+      </li>
+    </ul>
+  </p-dialog>
 </div>
