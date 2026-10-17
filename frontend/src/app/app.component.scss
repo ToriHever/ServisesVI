@@ -16,9 +16,11 @@ $sidebar-collapsed-width: 64px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: var(--p-content-background, #1e2530);
-  color: var(--p-text-color, #e5e9f0);
-  border-right: 1px solid var(--p-content-border-color, rgba(255, 255, 255, 0.08));
+  // Deliberately fixed dark palette, independent of the PrimeNG theme's own
+  // light/dark variables (those apply to the content area, not this shell).
+  background: #1e2530;
+  color: #e5e9f0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   transition: width 0.15s ease;
   overflow-x: hidden;
 }
@@ -75,8 +77,8 @@ $sidebar-collapsed-width: 64px;
     }
 
     &.active {
-      background: var(--p-primary-color, #10b981);
-      color: var(--p-primary-contrast-color, #fff);
+      background: #10b981;
+      color: #fff;
     }
   }
 }
