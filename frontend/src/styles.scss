@@ -1,18 +1,60 @@
 /* You can add global styles to this file, and also import other style files */
 @import "primeicons/primeicons.css";
 
+:root {
+  --bg-deep: #0a0d16;
+  --surface-glass: rgba(255, 255, 255, 0.04);
+  --surface-glass-strong: rgba(255, 255, 255, 0.07);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --text-primary: #e8eaf0;
+  --text-secondary: #9ca3b5;
+  --accent-violet: #8b5cf6;
+  --accent-blue: #3b82f6;
+  --accent-orange: #f59e0b;
+  --accent-pink: #ec4899;
+  --gradient-primary: linear-gradient(135deg, var(--accent-violet), var(--accent-blue));
+  --gradient-warm: linear-gradient(135deg, var(--accent-orange), var(--accent-pink));
+  --radius-lg: 20px;
+  --radius-md: 14px;
+}
+
 html,
 body {
   height: 100%;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f8f9fa;
-  color: #1e2530;
+  color: var(--text-primary);
+}
+
+body {
+  background:
+    radial-gradient(1100px circle at 8% -10%, rgba(139, 92, 246, 0.22), transparent 55%),
+    radial-gradient(900px circle at 95% 5%, rgba(59, 130, 246, 0.18), transparent 50%),
+    radial-gradient(900px circle at 50% 105%, rgba(245, 158, 11, 0.08), transparent 55%),
+    var(--bg-deep);
+  background-attachment: fixed;
 }
 
 .page {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
+
+  h1 {
+    color: var(--text-primary);
+  }
+
+  p {
+    color: var(--text-secondary);
+  }
+}
+
+/* A dark, slightly translucent panel — the base building block for cards everywhere. */
+.glass-panel {
+  background: var(--surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+  padding: 1.5rem;
 }
 
 .run-form {
@@ -26,6 +68,11 @@ body {
     flex-direction: column;
     gap: 0.35rem;
 
+    label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
     textarea,
     input {
       width: 100%;
@@ -35,17 +82,29 @@ body {
 
 .log-panel {
   margin-top: 1.5rem;
+
+  h3 {
+    color: var(--text-primary);
+
+    small {
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+  }
 }
 
 .log-output {
-  background: #1e1e1e;
+  background: rgba(0, 0, 0, 0.35);
   color: #d4d4d4;
   padding: 1rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass);
   max-height: 420px;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 0.85rem;
 }
 
 .continuation {
@@ -82,12 +141,139 @@ body {
     align-items: center;
     gap: 1rem;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-glass);
+  }
+
+  a {
+    color: var(--accent-blue);
   }
 
   .outputs-meta {
-    color: #888;
+    color: var(--text-secondary);
     font-size: 0.85rem;
+    white-space: nowrap;
+  }
+}
+
+.quick-launch {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+  margin: 1.75rem 0;
+}
+
+.quick-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.75rem;
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: #fff;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+  }
+
+  > .pi:first-child {
+    font-size: 1.6rem;
+    background: rgba(255, 255, 255, 0.18);
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+
+  h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1.15rem;
+  }
+
+  p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9rem;
+  }
+
+  .quick-card-arrow {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    opacity: 0.7;
+  }
+}
+
+.quick-card--violet {
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+}
+
+.quick-card--warm {
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+
+  h3 {
+    margin: 0;
+    color: var(--text-primary);
+  }
+
+  a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+}
+
+.empty-hint {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.runs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-glass);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .run-script {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .run-time {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
     white-space: nowrap;
   }
 }

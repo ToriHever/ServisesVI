@@ -1,0 +1,59 @@
+<div class="page">
+  <h1>Главная</h1>
+  <p>Быстрый доступ к основным инструментам и общая картина по последним запускам.</p>
+
+  <div class="quick-launch">
+    <a routerLink="/scripts/multi_search_parser/run" class="quick-card quick-card--violet">
+      <i class="pi pi-search"></i>
+      <div>
+        <h3>Multi Search Parser</h3>
+        <p>Яндекс/Google по списку запросов, скриншоты, SERP-фичи, ИИ-ответ</p>
+      </div>
+      <i class="pi pi-arrow-up-right quick-card-arrow"></i>
+    </a>
+
+    <a routerLink="/scripts/tf_analysis/run" class="quick-card quick-card--warm">
+      <i class="pi pi-chart-bar"></i>
+      <div>
+        <h3>TF Analysis</h3>
+        <p>Сравнение с конкурентами по леммам, кластеризация тем, отчёт в Excel</p>
+      </div>
+      <i class="pi pi-arrow-up-right quick-card-arrow"></i>
+    </a>
+  </div>
+
+  <div class="dashboard-grid">
+    <div class="glass-panel">
+      <div class="panel-header">
+        <h3>Последние запуски</h3>
+        <a routerLink="/history">Вся история</a>
+      </div>
+
+      <p *ngIf="recentRuns().length === 0" class="empty-hint">Запусков пока не было.</p>
+
+      <ul class="runs-list" *ngIf="recentRuns().length > 0">
+        <li *ngFor="let run of recentRuns()">
+          <span class="run-script">{{ run.scriptId }}</span>
+          <p-tag [value]="run.status" [severity]="severityFor(run.status)"></p-tag>
+          <span class="run-time">{{ run.startedAt | date: 'short' }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="glass-panel">
+      <div class="panel-header">
+        <h3>Cookies</h3>
+        <a routerLink="/cookies">Управлять</a>
+      </div>
+
+      <p *ngIf="cookieKeys().length === 0" class="empty-hint">Ни один скрипт пока не требует общих cookies.</p>
+
+      <ul class="runs-list" *ngIf="cookieKeys().length > 0">
+        <li *ngFor="let key of cookieKeys()">
+          <span class="run-script">{{ key.key }}</span>
+          <p-tag [value]="key.hasValue ? 'сохранено' : 'пусто'" [severity]="key.hasValue ? 'success' : 'warn'"></p-tag>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

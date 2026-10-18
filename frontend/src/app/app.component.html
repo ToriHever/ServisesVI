@@ -15,17 +15,81 @@
 
     <nav class="sidebar-nav">
       <a
-        *ngFor="let item of navItems"
-        [routerLink]="item.path"
+        routerLink="/"
         routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: !!item.exact }"
-        pTooltip="{{ item.label }}"
+        [routerLinkActiveOptions]="{ exact: true }"
+        pTooltip="Главная"
         tooltipPosition="right"
         [tooltipDisabled]="!collapsed()"
       >
-        <i [class]="item.icon"></i>
-        <span *ngIf="!collapsed()">{{ item.label }}</span>
+        <i class="pi pi-home"></i>
+        <span *ngIf="!collapsed()">Главная</span>
       </a>
+
+      <div class="nav-section" *ngIf="favorites().length > 0">
+        <span class="nav-section-title" *ngIf="!collapsed()">Избранное</span>
+        <a
+          *ngFor="let script of favorites()"
+          [routerLink]="['/scripts', script.id, 'run']"
+          routerLinkActive="active"
+          pTooltip="{{ script.label }}"
+          tooltipPosition="right"
+          [tooltipDisabled]="!collapsed()"
+        >
+          <i class="pi pi-star-fill"></i>
+          <span *ngIf="!collapsed()">{{ script.label }}</span>
+        </a>
+      </div>
+
+      <div class="nav-section" *ngFor="let group of groups()">
+        <span class="nav-section-title" *ngIf="!collapsed()">{{ group.title }}</span>
+        <a
+          *ngFor="let script of group.scripts"
+          [routerLink]="['/scripts', script.id, 'run']"
+          routerLinkActive="active"
+          pTooltip="{{ script.label }}"
+          tooltipPosition="right"
+          [tooltipDisabled]="!collapsed()"
+        >
+          <i class="pi pi-circle-fill"></i>
+          <span *ngIf="!collapsed()">{{ script.label }}</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-section-title" *ngIf="!collapsed()">Все данные</span>
+        <a
+          routerLink="/scripts"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          pTooltip="Все скрипты"
+          tooltipPosition="right"
+          [tooltipDisabled]="!collapsed()"
+        >
+          <i class="pi pi-th-large"></i>
+          <span *ngIf="!collapsed()">Все скрипты</span>
+        </a>
+        <a
+          routerLink="/history"
+          routerLinkActive="active"
+          pTooltip="История"
+          tooltipPosition="right"
+          [tooltipDisabled]="!collapsed()"
+        >
+          <i class="pi pi-history"></i>
+          <span *ngIf="!collapsed()">История</span>
+        </a>
+        <a
+          routerLink="/cookies"
+          routerLinkActive="active"
+          pTooltip="Cookies"
+          tooltipPosition="right"
+          [tooltipDisabled]="!collapsed()"
+        >
+          <i class="pi pi-key"></i>
+          <span *ngIf="!collapsed()">Cookies</span>
+        </a>
+      </div>
     </nav>
   </aside>
 
