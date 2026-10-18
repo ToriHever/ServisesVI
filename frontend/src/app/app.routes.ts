@@ -16,6 +16,10 @@ export const routes: Routes = [
       import('./features/script-run/script-run.component').then((m) => m.ScriptRunComponent)
   },
   {
+    path: 'scripts/:id/tasks',
+    loadComponent: () => import('./features/tasks/tasks.component').then((m) => m.TasksComponent)
+  },
+  {
     path: 'history',
     loadComponent: () =>
       import('./features/history/history.component').then((m) => m.HistoryComponent)

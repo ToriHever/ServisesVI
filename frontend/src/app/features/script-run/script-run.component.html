@@ -5,6 +5,9 @@
       <p>{{ m.description }}</p>
     </div>
     <div class="page-actions">
+      <a *ngIf="m.taskFolders" [routerLink]="['/scripts', m.id, 'tasks']">
+        <button pButton type="button" icon="pi pi-folder" severity="secondary" pTooltip="Задачи" tooltipPosition="bottom"></button>
+      </a>
       <button
         pButton
         type="button"

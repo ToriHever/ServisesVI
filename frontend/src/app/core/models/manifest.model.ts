@@ -35,4 +35,6 @@ export interface ScriptManifest {
     resumable: boolean;
   };
   knownIssues: string[];
+  /** Set when the script batch-processes every subfolder of this dir — UI shows a task manager instead of inputs. */
+  taskFolders?: string;
 }

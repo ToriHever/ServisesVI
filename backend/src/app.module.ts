@@ -7,6 +7,7 @@ import { RunsModule } from './runs/runs.module.js';
 import { HistoryModule } from './history/history.module.js';
 import { CookiesModule } from './cookies/cookies.module.js';
 import { OutputsModule } from './outputs/outputs.module.js';
+import { TasksModule } from './tasks/tasks.module.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { OutputsModule } from './outputs/outputs.module.js';
     HistoryModule,
     CookiesModule,
     OutputsModule,
+    TasksModule,
     RunsModule
   ],
   controllers: [AppController],

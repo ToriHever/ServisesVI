@@ -58,6 +58,12 @@ export interface ScriptManifest {
   outputs: ManifestOutput[];
   execution: ManifestExecution;
   knownIssues: string[];
+  /**
+   * Set when the script batch-processes every subfolder of this directory (relative to cwd)
+   * in one run, with no CLI way to pick just one — see manifests/SCHEMA.md. The UI shows a
+   * dedicated task-folder manager instead of a form input for this.
+   */
+  taskFolders?: string;
 }
 
 export interface ManifestIndexEntry {

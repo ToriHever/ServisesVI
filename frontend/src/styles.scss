@@ -299,3 +299,75 @@ body {
     white-space: nowrap;
   }
 }
+
+.task-create {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+
+  input {
+    flex: 1;
+    max-width: 320px;
+  }
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  cursor: default;
+  transition: border-color 0.1s ease;
+
+  &--active {
+    border-color: var(--accent-violet);
+  }
+}
+
+.task-row-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+
+.task-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: 0.25rem;
+}
+
+.task-detail {
+  margin-top: 1rem;
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+
+    label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    textarea {
+      width: 100%;
+    }
+
+    input[type='file'] {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+  }
+}

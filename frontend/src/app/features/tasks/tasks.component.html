@@ -1,0 +1,76 @@
+<div class="page" *ngIf="manifest() as m">
+  <div class="page-header">
+    <div>
+      <h1>Задачи: {{ m.name }}</h1>
+      <p>Каждая задача — запрос с вашей страницей и страницами конкурентов. Запуск скрипта обработает все задачи ниже разом.</p>
+    </div>
+    <div class="page-actions">
+      <a [routerLink]="['/scripts', m.id, 'run']">
+        <button pButton type="button" icon="pi pi-play" pTooltip="К запуску" tooltipPosition="bottom"></button>
+      </a>
+    </div>
+  </div>
+
+  <div class="task-create">
+    <input
+      pInputText
+      placeholder="Название новой задачи"
+      [ngModel]="newTaskName()"
+      (ngModelChange)="newTaskName.set($event)"
+      (keyup.enter)="createTask()"
+    />
+    <button pButton type="button" label="Создать" icon="pi pi-plus" (click)="createTask()" [disabled]="!newTaskName().trim()"></button>
+  </div>
+
+  <p *ngIf="!loading() && tasks().length === 0" class="empty-hint">Задач пока нет — создайте первую выше.</p>
+
+  <div class="task-list">
+    <div class="task-row glass-panel" *ngFor="let task of tasks()" [class.task-row--active]="selectedTask() === task.name">
+      <div class="task-row-main" (click)="openTask(task.name)">
+        <span class="task-name">{{ task.name }}</span>
+        <p-tag *ngIf="task.hasOwn" value="своя страница" severity="success"></p-tag>
+        <p-tag *ngIf="!task.hasOwn" value="нет своей страницы" severity="danger"></p-tag>
+        <p-tag [value]="task.competitorCount + ' конкурентов'" [severity]="task.competitorCount > 0 ? 'info' : 'warn'"></p-tag>
+        <p-tag *ngIf="task.hasQuery" value="запрос задан" severity="info"></p-tag>
+      </div>
+      <button pButton type="button" icon="pi pi-trash" severity="danger" [text]="true" (click)="deleteTask(task.name)"></button>
+    </div>
+  </div>
+
+  <div class="glass-panel task-detail" *ngIf="selectedTask() as task">
+    <div class="panel-header">
+      <h3>{{ task }}</h3>
+      <button pButton type="button" icon="pi pi-times" [text]="true" (click)="closeTask()"></button>
+    </div>
+
+    <div class="field">
+      <label>Запрос (необязательно — иначе берётся из названия задачи, главные/LSI-слова определяются автоматически)</label>
+      <textarea pTextarea rows="2" [ngModel]="queryText()" (ngModelChange)="queryText.set($event)"></textarea>
+      <button pButton type="button" label="Сохранить запрос" icon="pi pi-check" (click)="saveQuery()" class="mb-2"></button>
+    </div>
+
+    <div class="field">
+      <label>Своя страница (HTML, один файл — заменяет предыдущую)</label>
+      <input type="file" accept=".html,.htm,.txt" (change)="onOwnFileSelected($event)" [disabled]="uploading()" />
+    </div>
+
+    <div class="field">
+      <label>Страницы конкурентов (HTML, можно выбрать сразу несколько)</label>
+      <input type="file" accept=".html,.htm,.txt" multiple (change)="onCompetitorFilesSelected($event)" [disabled]="uploading()" />
+    </div>
+
+    <ul class="outputs-list" *ngIf="selectedFiles().length > 0">
+      <li *ngFor="let file of selectedFiles()">
+        <span>
+          <p-tag
+            [value]="file.role === 'own' ? 'своя' : file.role === 'query' ? 'запрос' : 'конкурент'"
+            [severity]="file.role === 'own' ? 'success' : file.role === 'query' ? 'info' : 'secondary'"
+            class="mr-1"
+          ></p-tag>
+          {{ file.name }}
+        </span>
+        <button pButton type="button" icon="pi pi-trash" severity="danger" [text]="true" (click)="deleteFile(file.name)"></button>
+      </li>
+    </ul>
+  </div>
+</div>
