@@ -4,11 +4,18 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { ScriptsService } from './core/services/scripts.service';
-import { FAVORITE_SCRIPT_IDS, OTHER_GROUP_TITLE, SCRIPT_GROUPS } from './core/nav-config';
+import {
+  DEFAULT_SCRIPT_ICON,
+  FAVORITE_SCRIPT_IDS,
+  OTHER_GROUP_TITLE,
+  SCRIPT_GROUPS,
+  SCRIPT_ICONS
+} from './core/nav-config';
 
 interface NavScript {
   id: string;
   label: string;
+  icon: string;
 }
 
 interface NavGroup {
@@ -33,23 +40,26 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     this.scriptsService.list().subscribe((scripts) => {
       const byId = new Map(scripts.map((s) => [s.id, s.name]));
+      const toNavScript = (id: string): NavScript => ({
+        id,
+        label: byId.get(id)!,
+        icon: SCRIPT_ICONS[id] ?? DEFAULT_SCRIPT_ICON
+      });
 
-      this.favorites.set(
-        FAVORITE_SCRIPT_IDS.filter((id) => byId.has(id)).map((id) => ({ id, label: byId.get(id)! }))
-      );
+      this.favorites.set(FAVORITE_SCRIPT_IDS.filter((id) => byId.has(id)).map(toNavScript));
 
       const categorized = new Set(FAVORITE_SCRIPT_IDS);
       const groups: NavGroup[] = SCRIPT_GROUPS.map((g) => {
         g.scriptIds.forEach((id) => categorized.add(id));
-        return {
-          title: g.title,
-          scripts: g.scriptIds.filter((id) => byId.has(id)).map((id) => ({ id, label: byId.get(id)! }))
-        };
+        return { title: g.title, scripts: g.scriptIds.filter((id) => byId.has(id)).map(toNavScript) };
       });
 
       const leftover = scripts.filter((s) => !categorized.has(s.id));
       if (leftover.length > 0) {
-        groups.push({ title: OTHER_GROUP_TITLE, scripts: leftover.map((s) => ({ id: s.id, label: s.name })) });
+        groups.push({
+          title: OTHER_GROUP_TITLE,
+          scripts: leftover.map((s) => ({ id: s.id, label: s.name, icon: SCRIPT_ICONS[s.id] ?? DEFAULT_SCRIPT_ICON }))
+        });
       }
 
       this.groups.set(groups);

@@ -14,3 +14,19 @@ export const SCRIPT_GROUPS: ScriptGroupConfig[] = [
 
 /** Fallback group for a script that appears in the manifest registry but isn't categorized above. */
 export const OTHER_GROUP_TITLE = 'Другое';
+
+/** One PrimeIcon per script, chosen to hint at what it actually does. */
+export const SCRIPT_ICONS: Record<string, string> = {
+  multi_search_parser: 'pi pi-search',
+  google_ddosguard: 'pi pi-shield',
+  tf_analysis: 'pi pi-chart-bar',
+  clarity: 'pi pi-eye',
+  parser_alisa: 'pi pi-comments',
+  parser_meta: 'pi pi-tags',
+  serch_links: 'pi pi-link',
+  parser_wordstat_api: 'pi pi-chart-line',
+  parser_domen: 'pi pi-globe',
+  images_parser: 'pi pi-image'
+};
+
+export const DEFAULT_SCRIPT_ICON = 'pi pi-code';

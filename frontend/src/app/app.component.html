@@ -36,8 +36,8 @@
           tooltipPosition="right"
           [tooltipDisabled]="!collapsed()"
         >
-          <i class="pi pi-star-fill"></i>
-          <span *ngIf="!collapsed()">{{ script.label }}</span>
+          <i [class]="script.icon"></i>
+          <span class="nav-label" *ngIf="!collapsed()">{{ script.label }}</span>
         </a>
       </div>
 
@@ -51,8 +51,8 @@
           tooltipPosition="right"
           [tooltipDisabled]="!collapsed()"
         >
-          <i class="pi pi-circle-fill"></i>
-          <span *ngIf="!collapsed()">{{ script.label }}</span>
+          <i [class]="script.icon"></i>
+          <span class="nav-label" *ngIf="!collapsed()">{{ script.label }}</span>
         </a>
       </div>
 

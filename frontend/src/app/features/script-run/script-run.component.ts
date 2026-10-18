@@ -11,6 +11,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
+import { TooltipModule } from 'primeng/tooltip';
 import { ScriptsService } from '../../core/services/scripts.service';
 import { RunsService } from '../../core/services/runs.service';
 import { OutputsService } from '../../core/services/outputs.service';
@@ -32,7 +33,8 @@ import type { OutputFile } from '../../core/models/output-file.model';
     CheckboxModule,
     DatePickerModule,
     TagModule,
-    DialogModule
+    DialogModule,
+    TooltipModule
   ],
   templateUrl: './script-run.component.html'
 })
@@ -57,7 +59,22 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id')!;
+    // Navigating between two script-run pages reuses this component instance (same route
+    // config), so ngOnInit only fires once — react to paramMap instead of reading a snapshot,
+    // otherwise clicking a different script in the sidebar leaves the old script's page showing.
+    this.route.paramMap.subscribe((params) => this.loadScript(params.get('id')!));
+  }
+
+  private loadScript(id: string): void {
+    this.logSub?.unsubscribe();
+    this.manifest.set(null);
+    this.runId.set(null);
+    this.status.set(null);
+    this.log.set('');
+    this.outputs.set([]);
+    this.outputsVisible.set(false);
+    for (const key of Object.keys(this.form.controls)) this.form.removeControl(key);
+
     this.scriptsService.get(id).subscribe((manifest) => {
       this.manifest.set(manifest);
       for (const input of manifest.inputs) {

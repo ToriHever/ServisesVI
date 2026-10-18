@@ -1,6 +1,40 @@
 <div class="page" *ngIf="manifest() as m">
-  <h1>{{ m.name }}</h1>
-  <p>{{ m.description }}</p>
+  <div class="page-header">
+    <div>
+      <h1>{{ m.name }}</h1>
+      <p>{{ m.description }}</p>
+    </div>
+    <div class="page-actions">
+      <button
+        pButton
+        type="button"
+        icon="pi pi-play"
+        pTooltip="Запустить"
+        tooltipPosition="bottom"
+        [disabled]="form.invalid || status() === 'running'"
+        (click)="start()"
+      ></button>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-stop"
+        severity="danger"
+        pTooltip="Остановить"
+        tooltipPosition="bottom"
+        [disabled]="status() !== 'running'"
+        (click)="stop()"
+      ></button>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-folder-open"
+        severity="secondary"
+        pTooltip="Результаты"
+        tooltipPosition="bottom"
+        (click)="openOutputs()"
+      ></button>
+    </div>
+  </div>
 
   <p-tag *ngIf="isBlocking" severity="danger" value="Требует ручного участия"></p-tag>
   <p-tag *ngIf="!m.execution.headless" severity="warn" value="Открывает видимый браузер"></p-tag>
@@ -53,32 +87,6 @@
         [formControlName]="input.key"
       ></p-datepicker>
     </div>
-
-    <button
-      pButton
-      type="button"
-      label="Запустить"
-      icon="pi pi-play"
-      [disabled]="form.invalid || status() === 'running'"
-      (click)="start()"
-    ></button>
-    <button
-      pButton
-      type="button"
-      label="Остановить"
-      icon="pi pi-stop"
-      severity="danger"
-      [disabled]="status() !== 'running'"
-      (click)="stop()"
-    ></button>
-    <button
-      pButton
-      type="button"
-      label="Результаты"
-      icon="pi pi-folder-open"
-      severity="secondary"
-      (click)="openOutputs()"
-    ></button>
   </form>
 
   <div class="log-panel" *ngIf="status()">

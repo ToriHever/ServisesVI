@@ -68,13 +68,22 @@ $sidebar-collapsed-width: 64px;
     border-radius: 10px;
     text-decoration: none;
     color: var(--text-secondary, #9ca3b5);
-    white-space: nowrap;
     font-size: 0.92rem;
+    min-width: 0;
 
     i {
+      flex-shrink: 0;
       font-size: 1rem;
       width: 1rem;
       text-align: center;
+    }
+
+    span {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     &:hover {
