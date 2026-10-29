@@ -28,6 +28,17 @@
         (click)="stop()"
       ></button>
       <button
+        *ngIf="!m.execution.headless"
+        pButton
+        type="button"
+        icon="pi pi-desktop"
+        label="noVNC"
+        [severity]="novncAttention() ? 'danger' : 'secondary'"
+        pTooltip="Открыть удалённый Chrome"
+        tooltipPosition="bottom"
+        (click)="openNovnc()"
+      ></button>
+      <button
         pButton
         type="button"
         icon="pi pi-folder-open"
@@ -100,6 +111,7 @@
       <input pInputText [formControl]="continuation" placeholder="Нажмите Enter / введите ответ скрипту" (keyup.enter)="sendContinuation()" />
       <button pButton type="button" label="Отправить" icon="pi pi-send" (click)="sendContinuation()"></button>
     </div>
+    <p class="mb-2" *ngIf="downloadMessage()">{{ downloadMessage() }}</p>
   </div>
 
   <p-dialog

@@ -15,6 +15,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ScriptsService } from '../../core/services/scripts.service';
 import { RunsService } from '../../core/services/runs.service';
 import { OutputsService } from '../../core/services/outputs.service';
+import { environment } from '../../../environments/environment';
 import type { ScriptManifest } from '../../core/models/manifest.model';
 import type { RunStatus } from '../../core/models/run.model';
 import type { OutputFile } from '../../core/models/output-file.model';
@@ -48,8 +49,12 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
   readonly outputsVisible = signal(false);
   readonly outputs = signal<OutputFile[]>([]);
   readonly outputsLoading = signal(false);
+  readonly novncAttention = signal(false);
+  readonly downloadMessage = signal('');
 
   private logSub?: Subscription;
+  private runStartedAt = 0;
+  private novncOpenedForRun = false;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -73,6 +78,9 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
     this.log.set('');
     this.outputs.set([]);
     this.outputsVisible.set(false);
+    this.novncAttention.set(false);
+    this.downloadMessage.set('');
+    this.novncOpenedForRun = false;
     for (const key of Object.keys(this.form.controls)) this.form.removeControl(key);
 
     this.scriptsService.get(id).subscribe((manifest) => {
@@ -101,6 +109,10 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
 
     this.log.set('');
     this.status.set('running');
+    this.downloadMessage.set('');
+    this.novncAttention.set(false);
+    this.novncOpenedForRun = false;
+    this.runStartedAt = Date.now();
     const formValue = this.form.value as Record<string, unknown>;
     const inputs: Record<string, string> = {};
     for (const input of manifest.inputs) {
@@ -119,8 +131,10 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
         this.logSub = this.runsService.watchLogs(id).subscribe((event) => {
           if (event.type === 'log' && event.text) {
             this.log.update((current) => current + event.text);
+            this.detectBrowserProblem(event.text);
           } else if (event.type === 'exit') {
             this.status.set(event.status ?? null);
+            if (event.status === 'finished') this.downloadNewOutputs(manifest.id);
           }
         });
       },
@@ -143,6 +157,57 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
     const id = this.runId();
     if (!id) return;
     this.runsService.stop(id).subscribe(() => this.status.set('stopped'));
+  }
+
+  openNovnc(): void {
+    const popup = window.open(environment.novncUrl, '_blank');
+    if (popup) {
+      popup.opener = null;
+      this.novncAttention.set(false);
+    } else {
+      this.novncAttention.set(true);
+    }
+  }
+
+  private detectBrowserProblem(text: string): void {
+    const manifest = this.manifest();
+    if (!manifest || manifest.execution.headless || this.novncOpenedForRun) return;
+    if (!/капч|captcha|блокировк|критическая ошибка|missing x server|detached frame|❌/i.test(text)) return;
+    this.novncOpenedForRun = true;
+    this.novncAttention.set(true);
+    this.openNovnc();
+  }
+
+  private downloadNewOutputs(scriptId: string): void {
+    this.outputsService.list(scriptId).subscribe({
+      next: (files) => {
+        const freshFiles = files.filter((file) => Date.parse(file.modifiedAt) >= this.runStartedAt - 2000);
+        this.outputs.set(freshFiles);
+        if (freshFiles.length === 0) {
+          this.downloadMessage.set('Новых файлов результатов нет.');
+          return;
+        }
+        this.downloadMessage.set(
+          freshFiles.length === 1
+            ? 'Результат скачивается на компьютер.'
+            : `Скачиваются ${freshFiles.length} файла. Разрешите множественное скачивание, если браузер спросит.`
+        );
+        freshFiles.forEach((file, index) => {
+          window.setTimeout(() => this.triggerDownload(scriptId, file.path), index * 300);
+        });
+      },
+      error: () => this.downloadMessage.set('Не удалось получить файлы результатов для скачивания.')
+    });
+  }
+
+  private triggerDownload(scriptId: string, path: string): void {
+    const anchor = document.createElement('a');
+    anchor.href = this.outputsService.downloadUrl(scriptId, path);
+    anchor.download = path.split('/').pop() ?? 'result';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   }
 
   openOutputs(): void {
