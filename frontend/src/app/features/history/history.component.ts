@@ -36,10 +36,17 @@ export class HistoryComponent implements OnInit {
     this.selectedLog.set(run.log.split('\n').reverse().join('\n'));
   }
 
-  severityFor(status: string): 'success' | 'danger' | 'warn' | 'info' {
+  severityFor(status: string): 'success' | 'danger' | 'warn' | 'info' | 'secondary' {
     if (status === 'finished') return 'success';
     if (status === 'failed') return 'danger';
-    if (status === 'stopped') return 'warn';
+    if (status === 'stopped') return 'secondary';
     return 'info';
+  }
+
+  iconFor(status: string): string {
+    if (status === 'finished') return 'pi pi-check-circle';
+    if (status === 'failed') return 'pi pi-times-circle';
+    if (status === 'stopped') return 'pi pi-clock';
+    return 'pi pi-spin pi-spinner';
   }
 }

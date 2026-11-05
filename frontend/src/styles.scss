@@ -53,6 +53,7 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  margin-bottom: 2.25rem;
 
   h1,
   p {
@@ -82,17 +83,24 @@ body {
 .run-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.9rem;
   margin: 1.5rem 0;
 
+  /* Поле-карточка: цветная иконка-плашка слева, контент справа. */
   .field {
     display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.9rem;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 0.95rem 1.1rem;
 
     label {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 0.95rem;
     }
 
     textarea,
@@ -100,7 +108,157 @@ body {
       width: 100%;
     }
   }
+
+  .field-icon {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    font-size: 1.15rem;
+    background: var(--acc-bg, rgba(148, 163, 184, 0.16));
+    color: var(--acc, #94a3b8);
+  }
+
+  .field-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    small {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+  }
+
+  /* Cookie-поле: заголовок и кнопка в одну строку, компактно. */
+  .cookie-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: var(--text-secondary);
+    }
+  }
+
+  /* Плитка флажков: 4 в ряд, адаптивно схлопывается. */
+  .flag-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 960px) {
+    .flag-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .flag-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .flag-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 0.85rem;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: var(--text-primary);
+    transition: border-color 0.12s ease, background 0.12s ease;
+
+    .field-icon {
+      width: 36px;
+      height: 36px;
+      font-size: 1rem;
+    }
+  }
+
+  .flag-tile-label {
+    font-size: 0.78rem;
+    line-height: 1.3;
+    color: var(--text-secondary);
+  }
+
+  /* Cookie-карточки: в одну строку, ширина — по содержимому; на узких экранах переносятся. */
+  .cookie-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem;
+
+    .field {
+      flex: 0 0 auto;
+      max-width: 100%;
+    }
+
+    textarea {
+      min-width: 320px;
+    }
+  }
+
+  /* Активный флажок: рамка и фон в цвет акцента плитки. */
+  .flag-tile--active {
+    border-color: var(--acc, var(--accent-blue));
+    background: var(--acc-bg, rgba(59, 130, 246, 0.12));
+
+    .flag-tile-label {
+      color: var(--text-primary);
+    }
+  }
 }
+
+/* Палитра акцентов: цвет и мягкий фон иконки/подсветки. */
+.accent-0 { --acc: #60a5fa; --acc-bg: rgba(59, 130, 246, 0.16); }
+.accent-1 { --acc: #4ade80; --acc-bg: rgba(34, 197, 94, 0.16); }
+.accent-2 { --acc: #c084fc; --acc-bg: rgba(168, 85, 247, 0.16); }
+.accent-3 { --acc: #fbbf24; --acc-bg: rgba(245, 158, 11, 0.16); }
+.accent-4 { --acc: #2dd4bf; --acc-bg: rgba(20, 184, 166, 0.16); }
+.accent-5 { --acc: #f472b6; --acc-bg: rgba(236, 72, 153, 0.16); }
+
+/* Мягкие «пилюли» статусов: полупрозрачный тонированный фон + цветной текст,
+   вместо сплошной заливки. */
+.p-tag {
+  border-radius: 10px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+
+  .p-tag-icon {
+    font-size: 0.95rem;
+    margin-right: 0.5rem;
+  }
+
+  .p-tag-label {
+    font-weight: 400;
+  }
+}
+
+/* Соседние теги не должны слипаться. */
+.p-tag + .p-tag {
+  margin-left: 0.4rem;
+}
+
+.p-tag-success { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.p-tag-info { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.p-tag-warn,
+.p-tag-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.p-tag-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.p-tag-secondary { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
 
 .log-panel {
   margin-top: 1.5rem;

@@ -30,7 +30,7 @@
     <ul class="runs-list">
       <li *ngFor="let run of activeRuns()">
         <span class="run-script">{{ run.scriptId }}</span>
-        <p-tag value="running" severity="info"></p-tag>
+        <p-tag value="running" severity="info" icon="pi pi-spin pi-spinner"></p-tag>
         <span class="run-time">{{ run.startedAt | date: 'short' }}</span>
         <a [routerLink]="['/scripts', run.scriptId, 'run']">Вернуться к процессу</a>
       </li>
@@ -49,7 +49,7 @@
       <ul class="runs-list" *ngIf="recentRuns().length > 0">
         <li *ngFor="let run of recentRuns()">
           <span class="run-script">{{ run.scriptId }}</span>
-          <p-tag [value]="run.status" [severity]="severityFor(run.status)"></p-tag>
+          <p-tag [value]="run.status" [severity]="severityFor(run.status)" [icon]="iconFor(run.status)"></p-tag>
           <span class="run-time">{{ run.startedAt | date: 'short' }}</span>
         </li>
       </ul>

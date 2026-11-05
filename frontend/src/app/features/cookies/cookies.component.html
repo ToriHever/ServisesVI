@@ -17,8 +17,8 @@
         <td>{{ info.key }}</td>
         <td>{{ info.scripts.join(', ') }}</td>
         <td>
-          <p-tag *ngIf="info.hasValue" value="сохранено" severity="success"></p-tag>
-          <p-tag *ngIf="!info.hasValue" value="пусто" severity="warn"></p-tag>
+          <p-tag *ngIf="info.hasValue" value="сохранено" severity="success" icon="pi pi-check-circle"></p-tag>
+          <p-tag *ngIf="!info.hasValue" value="пусто" severity="warn" icon="pi pi-exclamation-triangle"></p-tag>
         </td>
         <td>{{ info.updatedAt ? (info.updatedAt | date: 'short') : '—' }}</td>
         <td>

@@ -15,7 +15,7 @@
     <ng-template pTemplate="body" let-run>
       <tr>
         <td>{{ run.scriptId }}</td>
-        <td><p-tag [value]="run.status" [severity]="severityFor(run.status)"></p-tag></td>
+        <td><p-tag [value]="run.status" [severity]="severityFor(run.status)" [icon]="iconFor(run.status)"></p-tag></td>
         <td>{{ run.startedAt | date: 'short' }}</td>
         <td>{{ run.finishedAt ? (run.finishedAt | date: 'short') : '—' }}</td>
         <td>{{ run.exitCode ?? '—' }}</td>

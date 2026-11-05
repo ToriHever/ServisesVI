@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -52,6 +52,13 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
   readonly novncAttention = signal(false);
   readonly downloadMessage = signal('');
   readonly attachedExisting = signal(false);
+  readonly cookiesOpen = signal<Record<string, boolean>>({});
+  /** Флажки рендерятся отдельной плиткой, а не карточками полей. */
+  readonly flagInputs = computed(() => (this.manifest()?.inputs ?? []).filter((input) => input.kind === 'flag'));
+  /** Cookie-поля рендерятся отдельной строкой карточек. */
+  readonly cookieInputs = computed(() =>
+    (this.manifest()?.inputs ?? []).filter((input) => input.kind === 'file' && input.cookieKey)
+  );
 
   private logSub?: Subscription;
   private runStartedAt = 0;
@@ -197,6 +204,55 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
     const id = this.runId();
     if (!id) return;
     this.runsService.stop(id).subscribe(() => this.status.set('stopped'));
+  }
+
+  /** Cookie-поля скрыты за кнопкой «Изменить», чтобы не раздувать форму. */
+  toggleCookies(key: string): void {
+    this.cookiesOpen.update((state) => ({ ...state, [key]: !state[key] }));
+  }
+
+  /** Плитка флажков вставляется на место первого flag-входа в манифесте. */
+  isFirstFlag(index: number): boolean {
+    const inputs = this.manifest()?.inputs ?? [];
+    return inputs[index]?.kind === 'flag' && (index === 0 || inputs[index - 1].kind !== 'flag');
+  }
+
+  /** Строка cookie-карточек вставляется на место первого cookie-входа. */
+  isFirstCookie(index: number): boolean {
+    const inputs = this.manifest()?.inputs ?? [];
+    const isCookie = (i: number) => inputs[i]?.kind === 'file' && !!inputs[i]?.cookieKey;
+    return isCookie(index) && (index === 0 || !isCookie(index - 1));
+  }
+
+  /** Чекбокса у плитки нет — клик по карточке переключает значение. */
+  toggleFlag(key: string): void {
+    const control = this.form.get(key);
+    if (control) control.setValue(!control.value);
+  }
+
+  /** Иконки плиток под контекст конкретных флажков; неизвестным — нейтральная. */
+  flagIcon(key: string): string {
+    const icons: Record<string, string> = {
+      cookieMode: 'pi-eye-slash',
+      screenshots: 'pi-camera',
+      serpFeatures: 'pi-th-large',
+      aiAnswer: 'pi-android'
+    };
+    return icons[key] ?? 'pi-check';
+  }
+
+  /** Иконка-плашка поля формы по типу входа из манифеста. */
+  iconFor(kind: string): string {
+    if (kind === 'file') return 'pi-file';
+    if (kind === 'select') return 'pi-list';
+    if (kind === 'flag') return 'pi-check-square';
+    if (kind === 'date') return 'pi-calendar';
+    return 'pi-pencil';
+  }
+
+  /** Цвет иконки-плашки — палитра из 6 акцентов по кругу. */
+  accentClass(index: number): string {
+    return `accent-${index % 6}`;
   }
 
   openNovnc(): void {

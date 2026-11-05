@@ -38,10 +38,17 @@ export class DashboardComponent implements OnInit {
     this.cookiesService.list().subscribe((keys) => this.cookieKeys.set(keys));
   }
 
-  severityFor(status: RunStatus): 'success' | 'danger' | 'warn' | 'info' {
+  severityFor(status: RunStatus): 'success' | 'danger' | 'warn' | 'info' | 'secondary' {
     if (status === 'finished') return 'success';
     if (status === 'failed') return 'danger';
-    if (status === 'stopped') return 'warn';
+    if (status === 'stopped') return 'secondary';
     return 'info';
+  }
+
+  iconFor(status: RunStatus): string {
+    if (status === 'finished') return 'pi pi-check-circle';
+    if (status === 'failed') return 'pi pi-times-circle';
+    if (status === 'stopped') return 'pi pi-clock';
+    return 'pi pi-spin pi-spinner';
   }
 }

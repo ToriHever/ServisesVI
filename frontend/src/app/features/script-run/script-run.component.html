@@ -59,53 +59,100 @@
   ></p-tag>
 
   <form [formGroup]="form" class="run-form">
-    <div class="field" *ngFor="let input of m.inputs">
-      <label [for]="input.key">{{ input.label }}<span *ngIf="input.required"> *</span></label>
+    <ng-container *ngFor="let input of m.inputs; let i = index">
+      <!-- Флажки — плиткой: вся карточка кликабельна, активная подсвечена -->
+      <div class="flag-grid" *ngIf="isFirstFlag(i)">
+        <button
+          type="button"
+          class="flag-tile"
+          *ngFor="let flag of flagInputs(); let fi = index"
+          [ngClass]="[accentClass(fi), form.get(flag.key)?.value ? 'flag-tile--active' : '']"
+          (click)="toggleFlag(flag.key)"
+        >
+          <span class="field-icon"><i class="pi" [ngClass]="flagIcon(flag.key)"></i></span>
+          <span class="flag-tile-label">{{ flag.label }}</span>
+        </button>
+      </div>
 
-      <textarea
-        *ngIf="input.kind === 'file'"
-        pTextarea
-        rows="6"
-        [id]="input.key"
-        [formControlName]="input.key"
-        [placeholder]="
-          input.cookieKey
-            ? 'Оставьте пустым, чтобы использовать сохранённые cookies \'' + input.cookieKey + '\''
-            : 'Содержимое файла ' + (input.path ?? '')
-        "
-      ></textarea>
-      <small *ngIf="input.kind === 'file' && input.cookieKey">
-        Общие cookies сайта «{{ input.cookieKey }}» — можно управлять на странице
-        <a routerLink="/cookies">Cookies</a>. Если вставить значение здесь, оно обновит общий набор.
-      </small>
+      <!-- Cookie-карточки: одной строкой, ширина — по содержимому -->
+      <div class="cookie-row" *ngIf="isFirstCookie(i)">
+        <div class="field" *ngFor="let cookie of cookieInputs(); let ci = index" [ngClass]="accentClass(ci)">
+          <span class="field-icon"><i class="pi pi-file"></i></span>
+          <div class="field-body">
+            <div class="cookie-head">
+              <label [for]="cookie.key">{{ cookie.label }}</label>
+              <button
+                pButton
+                type="button"
+                size="small"
+                severity="secondary"
+                [text]="true"
+                [icon]="cookiesOpen()[cookie.key] ? 'pi pi-eye-slash' : 'pi pi-pencil'"
+                [pTooltip]="cookiesOpen()[cookie.key] ? 'Скрыть' : 'Изменить'"
+                tooltipPosition="bottom"
+                (click)="toggleCookies(cookie.key)"
+              ></button>
+            </div>
+            <ng-container *ngIf="cookiesOpen()[cookie.key]">
+              <textarea
+                pTextarea
+                rows="3"
+                [id]="cookie.key"
+                [formControlName]="cookie.key"
+                [placeholder]="'Оставьте пустым, чтобы использовать сохранённые cookies \'' + cookie.cookieKey + '\''
+                "
+              ></textarea>
+              <small>
+                Общие cookies сайта «{{ cookie.cookieKey }}» — управление на странице
+                <a routerLink="/cookies">Cookies</a>. Вставленное значение обновит общий набор.
+              </small>
+            </ng-container>
+          </div>
+        </div>
+      </div>
 
-      <input
-        *ngIf="input.kind === 'text'"
-        pInputText
-        [id]="input.key"
-        [formControlName]="input.key"
-      />
+    <div
+      class="field"
+      [ngClass]="accentClass(i)"
+      *ngIf="input.kind !== 'flag' && !(input.kind === 'file' && input.cookieKey)"
+    >
+      <span class="field-icon"><i class="pi" [ngClass]="iconFor(input.kind)"></i></span>
 
-      <p-select
-        *ngIf="input.kind === 'select'"
-        [id]="input.key"
-        [options]="input.options ?? []"
-        [formControlName]="input.key"
-      ></p-select>
+      <!-- Обычные файлы -->
+      <div class="field-body" *ngIf="input.kind === 'file' && !input.cookieKey">
+        <label [for]="input.key">{{ input.label }}<span *ngIf="input.required"> *</span></label>
+        <textarea
+          pTextarea
+          rows="6"
+          [id]="input.key"
+          [formControlName]="input.key"
+          [placeholder]="'Содержимое файла ' + (input.path ?? '')"
+        ></textarea>
+      </div>
 
-      <p-checkbox
-        *ngIf="input.kind === 'flag'"
-        [id]="input.key"
-        [formControlName]="input.key"
-        [binary]="true"
-      ></p-checkbox>
-
-      <p-datepicker
-        *ngIf="input.kind === 'date'"
-        [id]="input.key"
-        [formControlName]="input.key"
-      ></p-datepicker>
+      <!-- Текст / выбор / дата -->
+      <div class="field-body" *ngIf="input.kind === 'text' || input.kind === 'select' || input.kind === 'date'">
+        <label [for]="input.key">{{ input.label }}<span *ngIf="input.required"> *</span></label>
+        <input
+          *ngIf="input.kind === 'text'"
+          pInputText
+          [id]="input.key"
+          [formControlName]="input.key"
+        />
+        <p-select
+          *ngIf="input.kind === 'select'"
+          [id]="input.key"
+          [options]="input.options ?? []"
+          [formControlName]="input.key"
+        ></p-select>
+        <p-datepicker
+          *ngIf="input.kind === 'date'"
+          [id]="input.key"
+          [formControlName]="input.key"
+        ></p-datepicker>
+      </div>
     </div>
+    </ng-container>
   </form>
 
   <div class="log-panel" *ngIf="status()">
