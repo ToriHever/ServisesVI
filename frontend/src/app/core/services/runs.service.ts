@@ -25,6 +25,11 @@ export class RunsService {
     return this.http.get<RunHistoryRecord[]>(`${this.baseUrl}/history`);
   }
 
+  /** Полная запись о запуске + накопленный в памяти бэкенда лог (для переподключения к живому процессу). */
+  get(id: string): Observable<(RunHistoryRecord & { bufferedLog?: string }) | null> {
+    return this.http.get<(RunHistoryRecord & { bufferedLog?: string }) | null>(`${this.baseUrl}/${id}`);
+  }
+
   sendInput(id: string, text: string): Observable<{ ok: true }> {
     return this.http.post<{ ok: true }>(`${this.baseUrl}/${id}/input`, { text });
   }

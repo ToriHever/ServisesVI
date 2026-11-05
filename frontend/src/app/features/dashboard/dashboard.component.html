@@ -22,6 +22,21 @@
     </a>
   </div>
 
+  <div class="glass-panel" *ngIf="activeRuns().length > 0">
+    <div class="panel-header">
+      <h3>Сейчас выполняется</h3>
+    </div>
+
+    <ul class="runs-list">
+      <li *ngFor="let run of activeRuns()">
+        <span class="run-script">{{ run.scriptId }}</span>
+        <p-tag value="running" severity="info"></p-tag>
+        <span class="run-time">{{ run.startedAt | date: 'short' }}</span>
+        <a [routerLink]="['/scripts', run.scriptId, 'run']">Вернуться к процессу</a>
+      </li>
+    </ul>
+  </div>
+
   <div class="dashboard-grid">
     <div class="glass-panel">
       <div class="panel-header">

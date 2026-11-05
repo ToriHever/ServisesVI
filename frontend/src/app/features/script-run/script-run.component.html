@@ -28,6 +28,17 @@
         (click)="stop()"
       ></button>
       <button
+        *ngIf="!m.execution.headless"
+        pButton
+        type="button"
+        icon="pi pi-desktop"
+        label="noVNC"
+        [severity]="novncAttention() ? 'danger' : 'secondary'"
+        pTooltip="Открыть удалённый Chrome"
+        tooltipPosition="bottom"
+        (click)="openNovnc()"
+      ></button>
+      <button
         pButton
         type="button"
         icon="pi pi-folder-open"
@@ -41,6 +52,11 @@
 
   <p-tag *ngIf="isBlocking" severity="danger" value="Требует ручного участия"></p-tag>
   <p-tag *ngIf="!m.execution.headless" severity="warn" value="Открывает видимый браузер"></p-tag>
+  <p-tag
+    *ngIf="attachedExisting() && status() === 'running'"
+    severity="info"
+    value="Подключено к уже запущенному процессу — лог и ввод работают"
+  ></p-tag>
 
   <form [formGroup]="form" class="run-form">
     <div class="field" *ngFor="let input of m.inputs">
@@ -100,6 +116,7 @@
       <input pInputText [formControl]="continuation" placeholder="Нажмите Enter / введите ответ скрипту" (keyup.enter)="sendContinuation()" />
       <button pButton type="button" label="Отправить" icon="pi pi-send" (click)="sendContinuation()"></button>
     </div>
+    <p class="mb-2" *ngIf="downloadMessage()">{{ downloadMessage() }}</p>
   </div>
 
   <p-dialog

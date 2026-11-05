@@ -15,6 +15,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ScriptsService } from '../../core/services/scripts.service';
 import { RunsService } from '../../core/services/runs.service';
 import { OutputsService } from '../../core/services/outputs.service';
+import { environment } from '../../../environments/environment';
 import type { ScriptManifest } from '../../core/models/manifest.model';
 import type { RunStatus } from '../../core/models/run.model';
 import type { OutputFile } from '../../core/models/output-file.model';
@@ -48,8 +49,13 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
   readonly outputsVisible = signal(false);
   readonly outputs = signal<OutputFile[]>([]);
   readonly outputsLoading = signal(false);
+  readonly novncAttention = signal(false);
+  readonly downloadMessage = signal('');
+  readonly attachedExisting = signal(false);
 
   private logSub?: Subscription;
+  private runStartedAt = 0;
+  private novncOpenedForRun = false;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -73,6 +79,10 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
     this.log.set('');
     this.outputs.set([]);
     this.outputsVisible.set(false);
+    this.novncAttention.set(false);
+    this.downloadMessage.set('');
+    this.attachedExisting.set(false);
+    this.novncOpenedForRun = false;
     for (const key of Object.keys(this.form.controls)) this.form.removeControl(key);
 
     this.scriptsService.get(id).subscribe((manifest) => {
@@ -83,6 +93,50 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
         const requiresValue = input.required && !input.cookieKey;
         const initialValue = input.kind === 'flag' ? false : '';
         this.form.addControl(input.key, new FormControl(initialValue, requiresValue ? Validators.required : []));
+      }
+    });
+
+    // Если этот скрипт уже выполняется (вкладку закрыли или перезагрузили страницу) —
+    // переподключаемся к живому процессу: бэкенд держит его в памяти, лог и ввод
+    // продолжают работать, ничего не теряется.
+    this.runsService.list().subscribe((runs) => {
+      const active = runs
+        .filter((run) => run.scriptId === id && run.status === 'running')
+        .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
+      if (active) this.attachToRun(active.id);
+    });
+  }
+
+  private attachToRun(id: string): void {
+    this.runId.set(id);
+    this.status.set('running');
+    this.attachedExisting.set(true);
+    this.runStartedAt = Date.now();
+    this.runsService.get(id).subscribe((record) => {
+      const buffered = record?.bufferedLog ?? '';
+      // Лог показывается инвертированно: последние события сверху, без прокрутки.
+      this.log.set(buffered.split('\n').reverse().join('\n'));
+      // Если в хвосте лога уже капча/блокировка — подсвечиваем кнопку noVNC,
+      // но не открываем popup сами: без жеста пользователя браузер его заблокирует.
+      if (/капч|captcha|блокировк|ожидани/i.test(buffered.slice(-3000))) {
+        this.novncAttention.set(true);
+      }
+    });
+    this.watchRun(id);
+  }
+
+  private watchRun(id: string): void {
+    this.logSub?.unsubscribe();
+    this.logSub = this.runsService.watchLogs(id).subscribe((event) => {
+      if (event.type === 'log' && event.text) {
+        // Новые события — наверх: лог инвертирован, следить за ходом run'а
+        // удобнее без прокрутки вниз.
+        this.log.update((current) => event.text + current);
+        this.detectBrowserProblem(event.text);
+      } else if (event.type === 'exit') {
+        this.status.set(event.status ?? null);
+        const manifest = this.manifest();
+        if (event.status === 'finished' && manifest) this.downloadNewOutputs(manifest.id);
       }
     });
   }
@@ -101,6 +155,10 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
 
     this.log.set('');
     this.status.set('running');
+    this.downloadMessage.set('');
+    this.novncAttention.set(false);
+    this.novncOpenedForRun = false;
+    this.runStartedAt = Date.now();
     const formValue = this.form.value as Record<string, unknown>;
     const inputs: Record<string, string> = {};
     for (const input of manifest.inputs) {
@@ -116,13 +174,7 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
     this.runsService.start(manifest.id, inputs).subscribe({
       next: ({ id }) => {
         this.runId.set(id);
-        this.logSub = this.runsService.watchLogs(id).subscribe((event) => {
-          if (event.type === 'log' && event.text) {
-            this.log.update((current) => current + event.text);
-          } else if (event.type === 'exit') {
-            this.status.set(event.status ?? null);
-          }
-        });
+        this.watchRun(id);
       },
       error: (err) => {
         this.status.set('failed');
@@ -134,8 +186,10 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
 
   sendContinuation(): void {
     const id = this.runId();
-    const text = this.continuation.value;
-    if (!id || !text) return;
+    if (!id) return;
+    // Пустой ввод — это просто Enter: именно его ждут prompt'ы
+    // «Нажмите Enter для продолжения» (после капчи и т.п.).
+    const text = this.continuation.value ?? '';
     this.runsService.sendInput(id, text).subscribe(() => this.continuation.setValue(''));
   }
 
@@ -143,6 +197,57 @@ export class ScriptRunComponent implements OnInit, OnDestroy {
     const id = this.runId();
     if (!id) return;
     this.runsService.stop(id).subscribe(() => this.status.set('stopped'));
+  }
+
+  openNovnc(): void {
+    const popup = window.open(environment.novncUrl, '_blank');
+    if (popup) {
+      popup.opener = null;
+      this.novncAttention.set(false);
+    } else {
+      this.novncAttention.set(true);
+    }
+  }
+
+  private detectBrowserProblem(text: string): void {
+    const manifest = this.manifest();
+    if (!manifest || manifest.execution.headless || this.novncOpenedForRun) return;
+    if (!/капч|captcha|блокировк|критическая ошибка|missing x server|detached frame|❌/i.test(text)) return;
+    this.novncOpenedForRun = true;
+    this.novncAttention.set(true);
+    this.openNovnc();
+  }
+
+  private downloadNewOutputs(scriptId: string): void {
+    this.outputsService.list(scriptId).subscribe({
+      next: (files) => {
+        const freshFiles = files.filter((file) => Date.parse(file.modifiedAt) >= this.runStartedAt - 2000);
+        this.outputs.set(freshFiles);
+        if (freshFiles.length === 0) {
+          this.downloadMessage.set('Новых файлов результатов нет.');
+          return;
+        }
+        this.downloadMessage.set(
+          freshFiles.length === 1
+            ? 'Результат скачивается на компьютер.'
+            : `Скачиваются ${freshFiles.length} файла. Разрешите множественное скачивание, если браузер спросит.`
+        );
+        freshFiles.forEach((file, index) => {
+          window.setTimeout(() => this.triggerDownload(scriptId, file.path), index * 300);
+        });
+      },
+      error: () => this.downloadMessage.set('Не удалось получить файлы результатов для скачивания.')
+    });
+  }
+
+  private triggerDownload(scriptId: string, path: string): void {
+    const anchor = document.createElement('a');
+    anchor.href = this.outputsService.downloadUrl(scriptId, path);
+    anchor.download = path.split('/').pop() ?? 'result';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   }
 
   openOutputs(): void {

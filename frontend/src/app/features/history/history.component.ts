@@ -23,7 +23,8 @@ export class HistoryComponent implements OnInit {
   ngOnInit(): void {
     this.runsService.history().subscribe({
       next: (runs) => {
-        this.runs.set(runs);
+        // Свежие запуски всегда первыми (явная сортировка, не зависим от порядка API).
+        this.runs.set([...runs].sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt)));
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
@@ -31,7 +32,8 @@ export class HistoryComponent implements OnInit {
   }
 
   showLog(run: RunHistoryRecord): void {
-    this.selectedLog.set(run.log);
+    // Как и на странице запуска: последние события сверху.
+    this.selectedLog.set(run.log.split('\n').reverse().join('\n'));
   }
 
   severityFor(status: string): 'success' | 'danger' | 'warn' | 'info' {
