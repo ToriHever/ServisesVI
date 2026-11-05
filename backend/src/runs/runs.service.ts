@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import crossSpawn from 'cross-spawn';
 import * as pty from 'node-pty';
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { parse as parseDotenv } from 'dotenv';
@@ -280,6 +280,29 @@ export class RunsService {
     this.history.finish(run.id, status, exitCode, run.logs.join(''));
     run.events.next({ type: 'exit', status, exitCode, at: new Date().toISOString() });
     run.events.complete();
+    void this.syncCookiesBack(run);
+  }
+
+  /**
+   * После завершения run'а забираем cookie-файлы, которые скрипт обновил у себя
+   * на диске (например, multi_search_parser пересохраняет куки после ручного
+   * прохождения капчи), обратно в общий vault: тогда страница Cookies показывает
+   * честный статус, а следующие запуски подхватывают свежие куки автоматически.
+   */
+  private async syncCookiesBack(run: RunState): Promise<void> {
+    const scriptCwd = this.manifests.resolveScriptCwd(run.manifest);
+    for (const input of run.manifest.inputs) {
+      if (input.kind !== 'file' || !input.cookieKey || !input.path) continue;
+      try {
+        const content = await readFile(join(scriptCwd, input.path), 'utf-8');
+        // Пустой массив "[]" не считаем сохранёнными куками.
+        if (content.trim().length > 2) {
+          await this.cookies.set(input.cookieKey, content);
+        }
+      } catch {
+        // Файла нет — скрипт в этом запуске куки не сохранял, оставляем vault как есть.
+      }
+    }
   }
 
   sendInput(id: string, text: string): void {
@@ -298,6 +321,7 @@ export class RunsService {
       run.child?.kill();
       run.status = 'stopped';
       this.history.finish(id, 'stopped', null, run.logs.join(''));
+      void this.syncCookiesBack(run);
     }
   }
 
